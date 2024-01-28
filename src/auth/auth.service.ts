@@ -12,6 +12,7 @@ import { ResetPasswordDemandDto } from './dto/resetPasswordDemand.dto';
 import { ResetPasswordConfirmationDto } from './dto/resetPasswordConfirmation.dto';
 import { DeleteAccountDto } from './dto/deleteAccount.dto';
 import { OnEvent } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 
 
 @Injectable()
@@ -21,6 +22,7 @@ export class AuthService {
     @InjectRepository(User) private userRepository: Repository<User>,
     private readonly mailerService : MailerService,
     private readonly jwtService: JwtService,
+    private readonly config : ConfigService
   ) { }
 
   async signup(signupDto: SignupDto) {
@@ -49,7 +51,7 @@ export class AuthService {
       sub: user.id,
       email: user.email
     }
-    const token = this.jwtService.sign(payload, { expiresIn: '2h', secret: "coucou" });
+    const token = this.jwtService.sign(payload, { expiresIn: '2h', secret: this.config.get('SECRET_KEY') });
 
     return {
       token, 
@@ -65,7 +67,7 @@ export class AuthService {
     const user = await this.userRepository.findOneBy({email})
     if (!user) throw new NotFoundException('User non trouvé')
     const code = speakeasy.totp({
-      secret: "coucou",
+      secret: this.config.get('SECRET_KEY'),
       digits: 5,
       step:  60 * 15, //durré
       encoding: "base32"
@@ -82,7 +84,7 @@ export class AuthService {
     const user = await this.userRepository.findOneBy({ email });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
     const testCode = speakeasy.totp.verify({
-      secret: "Otp_code",
+      secret: this.config.get('OTP_CODE'),
       token: code,
       digits: 5,
       step:  60 * 15, //durré
