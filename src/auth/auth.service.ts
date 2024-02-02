@@ -4,22 +4,23 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from "bcrypt";
 import * as speakeasy from 'speakeasy';
-import { User } from 'src/entities/user.entity';
 import { MailerService } from 'src/mailer/mailer.service';
 import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
 import { ResetPasswordDemandDto } from './dto/resetPasswordDemand.dto';
 import { ResetPasswordConfirmationDto } from './dto/resetPasswordConfirmation.dto';
 import { DeleteAccountDto } from './dto/deleteAccount.dto';
-import { OnEvent } from '@nestjs/event-emitter';
+import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
+import { Auth } from './entities/auth.entity';
 
 
 @Injectable()
 export class AuthService {
 
   constructor(
-    @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(Auth) private authRepository: Repository<Auth>,
+    private readonly eventEmitter: EventEmitter2,
     private readonly mailerService : MailerService,
     private readonly jwtService: JwtService,
     private readonly config : ConfigService
@@ -27,12 +28,16 @@ export class AuthService {
 
   async signup(signupDto: SignupDto) {
     const { email, password, username } = signupDto;
-    const user = await this.userRepository.findOneBy({ email });
-    if (user) throw new ConflictException("L'utilisateur exist déja");
+
+
+
+    const auth = await this.authRepository.findOneBy({ email });
+    if (auth) throw new ConflictException("L'utilisateur exist déja");
     const hash = await bcrypt.hash(password, 10);
 
-    const newUser = this.userRepository.create({ email, username, password: hash })
-    return this.userRepository.save(newUser)
+    const newAuth = this.authRepository.create({ email, password: hash })
+    return await this.authRepository.save(newAuth)
+
    // await this.mailerService.sendSignupConfirmation(newUser.email)
     return 'Utilisateur crée avec succèes !'
   }
@@ -40,31 +45,30 @@ export class AuthService {
   async signin(signinDto: SigninDto) {
     const { email, password } = signinDto
 
-    const user = await this.userRepository.findOneBy({ email });
-    if (!user) throw new NotFoundException('Utilisateur non trouvé');
+    const auth = await this.authRepository.findOneBy({ email });
+    if (!auth) throw new NotFoundException('Utilisateur non trouvé');
 
-    const pwdtest = await bcrypt.compare(password, user.password);
+    const pwdtest = await bcrypt.compare(password, auth.password);
 
     if (!pwdtest) throw new UnauthorizedException('Mot de passe incorrect')
 
     const payload = {
-      sub: user.id,
-      email: user.email
+      sub: auth.id,
+      email: auth.email
     }
     const token = this.jwtService.sign(payload, { expiresIn: '2h', secret: this.config.get('SECRET_KEY') });
 
     return {
       token, 
       user : {
-        username : user.username, 
-        email : user.email
+        email : auth.email
       }
     }
   }
-
+  /*
   async resetPasswordDemand(resetPasswordDemandDto: ResetPasswordDemandDto) {
     const { email } = resetPasswordDemandDto;
-    const user = await this.userRepository.findOneBy({email})
+    const user = await this.authRepository.findOneBy({email})
     if (!user) throw new NotFoundException('User non trouvé')
     const code = speakeasy.totp({
       secret: this.config.get('SECRET_KEY'),
@@ -81,7 +85,7 @@ export class AuthService {
 
   async resetPasswordConfirmation(resetPasswordConfirmationDto: ResetPasswordConfirmationDto) {
     const {email, code, password} = resetPasswordConfirmationDto
-    const user = await this.userRepository.findOneBy({ email });
+    const user = await this.authRepository.findOneBy({ email });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
     const testCode = speakeasy.totp.verify({
       secret: this.config.get('OTP_CODE'),
@@ -93,32 +97,32 @@ export class AuthService {
     if(!testCode) throw new UnauthorizedException('Invalid/expired token')
     const hash = await bcrypt.hash(password, 10)
     user.password = hash
-    await this.userRepository.update({email}, user)
+    await this.authRepository.update({email}, user)
     return user
     
   }
 
   async deleteAccount(userId: number, deleteAccountDto: DeleteAccountDto) {
     const {password} = deleteAccountDto
-    const user = await this.userRepository.findOneBy({ id : userId });
+    const user = await this.authRepository.findOneBy({ id : userId });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
     const pwdtest = await bcrypt.compare(password, user.password);
     if (!pwdtest) throw new UnauthorizedException('Mot de passe incorrect')
 
-    await this.userRepository.delete({id : userId})
+    await this.authRepository.delete({id : userId})
 
     return "Utilisateur supprimé avec succès"
   }
   
   @OnEvent('auth.findOne')
   async findOne(id: number){
-    return await this.userRepository.findOneBy({id})
+    return await this.authRepository.findOneBy({id})
   }
   
   @OnEvent('auth.findAll')
   async findAll(){
-    return await this.userRepository.find()
+    return await this.authRepository.find()
   }
-
+  */
 }

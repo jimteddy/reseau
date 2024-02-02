@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from './auth/auth.module';
 import { MailerModule } from './mailer/mailer.module';
-import { PostModule } from './post/post.module';
-import { CommentModule } from './comment/comment.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { UsersModule } from './users/users.module';
+import { User } from './users/entities/user.entity';
+import { Auth } from './auth/entities/auth.entity';
 
 
 @Module({
@@ -21,16 +22,15 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         username: config.get('DATABASE_USER'),
         password: config.get('DATABASE_PASSWORD'),
         database: config.get('DATABASE_NAME'),
-       // entities: [User, Post, Comment],
-        entities: ['**/*.entity{.ts}'],
+        entities: [User, Auth],
+        //entities: ['**/entities/*.entity{.ts}'],
         synchronize: true,
         autoLoadEntities: true,
       })
     }),
     AuthModule,
+    UsersModule,
     MailerModule,
-    PostModule,
-    CommentModule,
     ],
   controllers: [],
   providers: [],

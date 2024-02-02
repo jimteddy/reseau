@@ -5,7 +5,7 @@ import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
 import { ResetPasswordDemandDto } from './dto/resetPasswordDemand.dto';
 import { ResetPasswordConfirmationDto } from './dto/resetPasswordConfirmation.dto';
-import {Request} from "express"
+import { Request } from "express"
 import { DeleteAccountDto } from './dto/deleteAccount.dto';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -24,6 +24,7 @@ export class AuthController {
     return this.authService.signin(signinDto)
   }
 
+  /*
   @Post("reset-password")
   resetPasswordDemand(@Body() resetPasswordDemandDto : ResetPasswordDemandDto){
     return this.authService.resetPasswordDemand(resetPasswordDemandDto)
@@ -40,4 +41,5 @@ export class AuthController {
     const userId = request.user['id']
     return this.authService.deleteAccount(userId, deleteAccountDto);
   }
+  */
 }
