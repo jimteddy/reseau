@@ -13,6 +13,8 @@ import { DeleteAccountDto } from './dto/deleteAccount.dto';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { Auth } from './entities/auth.entity';
+import { log } from 'console';
+import { User } from 'src/users/entities/user.entity';
 
 
 @Injectable()
@@ -29,23 +31,38 @@ export class AuthService {
   async signup(signupDto: SignupDto) {
     const { email, password, username } = signupDto;
 
-
+    const verify_username = await (await this.eventEmitter.emitAsync("users.verify_username", username)).pop()
+    if (verify_username === true) throw new ConflictException(`${username} exist déja`)
 
     const auth = await this.authRepository.findOneBy({ email });
     if (auth) throw new ConflictException("L'utilisateur exist déja");
     const hash = await bcrypt.hash(password, 10);
 
-    const newAuth = this.authRepository.create({ email, password: hash })
+    const newUser : User | null = (await this.eventEmitter.emitAsync("users.create_user", {username})).pop()
+    if(!newUser) throw new NotFoundException('Pas trouvé')
+    const newAuth = this.authRepository.create({ email, password: hash, user: newUser })
     return await this.authRepository.save(newAuth)
 
    // await this.mailerService.sendSignupConfirmation(newUser.email)
-    return 'Utilisateur crée avec succèes !'
+    return 'Utilisateur crée avec succèes !' 
   }
 
   async signin(signinDto: SigninDto) {
     const { email, password } = signinDto
 
-    const auth = await this.authRepository.findOneBy({ email });
+    const auth = await this.authRepository.findOne({ 
+      where : {email}, 
+      relations: ['user',],
+      select: {
+        "user": { 
+          username: true, 
+          nom: true,
+          prenom: true,
+          birthday: true,
+          sexe: true,
+        }
+      }
+    });
     if (!auth) throw new NotFoundException('Utilisateur non trouvé');
 
     const pwdtest = await bcrypt.compare(password, auth.password);
@@ -54,17 +71,20 @@ export class AuthService {
 
     const payload = {
       sub: auth.id,
-      email: auth.email
+      email: auth.email,
+      user: auth.user
     }
     const token = this.jwtService.sign(payload, { expiresIn: '2h', secret: this.config.get('SECRET_KEY') });
 
     return {
       token, 
-      user : {
+      user_auth : {
+        user : auth.user,
         email : auth.email
       }
     }
   }
+
   /*
   async resetPasswordDemand(resetPasswordDemandDto: ResetPasswordDemandDto) {
     const { email } = resetPasswordDemandDto;
@@ -100,14 +120,14 @@ export class AuthService {
     await this.authRepository.update({email}, user)
     return user
     
-  }
+  }*/
 
   async deleteAccount(userId: number, deleteAccountDto: DeleteAccountDto) {
     const {password} = deleteAccountDto
-    const user = await this.authRepository.findOneBy({ id : userId });
-    if (!user) throw new NotFoundException('Utilisateur non trouvé');
+    const auth = await this.authRepository.findOneBy({ id : userId });
+    if (!auth) throw new NotFoundException('Utilisateur non trouvé');
 
-    const pwdtest = await bcrypt.compare(password, user.password);
+    const pwdtest = await bcrypt.compare(password, auth.password);
     if (!pwdtest) throw new UnauthorizedException('Mot de passe incorrect')
 
     await this.authRepository.delete({id : userId})
@@ -124,5 +144,5 @@ export class AuthService {
   async findAll(){
     return await this.authRepository.find()
   }
-  */
+  
 }
