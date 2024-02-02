@@ -23,7 +23,7 @@ export class AuthService {
   constructor(
     @InjectRepository(Auth) private authRepository: Repository<Auth>,
     private readonly eventEmitter: EventEmitter2,
-    private readonly mailerService : MailerService,
+    //private readonly mailerService : MailerService,
     private readonly jwtService: JwtService,
     private readonly config : ConfigService
   ) { }
@@ -124,25 +124,44 @@ export class AuthService {
 
   async deleteAccount(userId: number, deleteAccountDto: DeleteAccountDto) {
     const {password} = deleteAccountDto
-    const auth = await this.authRepository.findOneBy({ id : userId });
+    const auth = await this.authRepository.findOne({ 
+      where : {id: userId}, 
+      relations: ['user',],
+      select: {
+        "user": { 
+          username: true, 
+          nom: true,
+          prenom: true,
+          birthday: true,
+          sexe: true,
+        }
+      }
+    });
     if (!auth) throw new NotFoundException('Utilisateur non trouvé');
 
     const pwdtest = await bcrypt.compare(password, auth.password);
     if (!pwdtest) throw new UnauthorizedException('Mot de passe incorrect')
 
-    await this.authRepository.delete({id : userId})
+    const textAuth = await this.authRepository.update({id : userId}, {isActive: false})
+    const textUser = await this.eventEmitter.emitAsync('users.desactivated', auth.user.username)
+
+    log(textAuth)
+    log(textUser)
 
     return "Utilisateur supprimé avec succès"
   }
   
   @OnEvent('auth.findOne')
   async findOne(id: number){
-    return await this.authRepository.findOneBy({id})
+    return await this.authRepository.findOne({
+      where : {id} , 
+      relations: ['user']
+    })
   }
   
   @OnEvent('auth.findAll')
   async findAll(){
-    return await this.authRepository.find()
+    return await this.authRepository.find({relations: ['user']})
   }
   
 }
