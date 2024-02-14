@@ -7,17 +7,18 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
   const config = new DocumentBuilder()
-  .setTitle('Reseau')
-  .setDescription("Description de l'API")
+  .setTitle('Soba')
+  .setDescription("Description de l'API SOBA")
   .setVersion("0.1")
-  .addTag('reseau')
+  .addTag('Soba')
   .build()
   const document = SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api', app, document)
 
   app.useGlobalPipes(new ValidationPipe())
-  await app.listen(process.env.PORT? parseInt(process.env.PORT) : 3000);
+  await app.listen(3000);
 }
 bootstrap();
  

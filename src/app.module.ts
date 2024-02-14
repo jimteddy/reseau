@@ -1,18 +1,13 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm'
-import { AuthModule } from './auth/auth.module';
-import { MailerModule } from './mailer/mailer.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { UsersModule } from './users/users.module';
-import { User } from './users/entities/user.entity';
-import { Auth } from './auth/entities/auth.entity';
+//import { EventEmitterModule } from '@nestjs/event-emitter';
 
 
 @Module({
   imports: [
     ConfigModule.forRoot({isGlobal:true}),
-    EventEmitterModule.forRoot({}),
+    //EventEmitterModule.forRoot({}),
     TypeOrmModule.forRootAsync({
       inject:[ConfigService],
       useFactory:(config: ConfigService)=>({
@@ -22,15 +17,13 @@ import { Auth } from './auth/entities/auth.entity';
         username: config.get('DATABASE_USER'),
         password: config.get('DATABASE_PASSWORD'),
         database: config.get('DATABASE_NAME'),
-        entities: [User, Auth],
+        entities: [],
         //entities: ['**/entities/*.entity{.ts}'],
         synchronize: true,
         autoLoadEntities: true,
       })
     }),
-    AuthModule,
-    UsersModule,
-    MailerModule,
+  
     ],
   controllers: [],
   providers: [],
