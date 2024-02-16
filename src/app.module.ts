@@ -10,6 +10,7 @@ import { Product } from './product/entities/product.entity';
 import { CategoryModule } from './category/category.module';
 import { Category } from './category/entities/category.entity';
 import { User } from './user/entities/user.entity';
+import { Catalogue } from './catalogue/entities/catalogue.entity';
 
 
 @Module({
@@ -25,18 +26,17 @@ import { User } from './user/entities/user.entity';
         username: config.get('DATABASE_USER'),
         password: config.get('DATABASE_PASSWORD'),
         database: config.get('DATABASE_NAME'),
-        entities: [Category, Product, User ],
+        entities: [User, Category, Product, Catalogue ],
         //entities: ['**/entities/*.entity{.ts}'],
         synchronize: true,
         autoLoadEntities: true,
       })
     }),
     AuthModule,
+    UserModule,
     CatalogueModule,
     ProductModule,
-    UserModule,
     CategoryModule,
-  
     ],
   controllers: [],
   providers: [],

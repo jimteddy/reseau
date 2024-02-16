@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, Exclusion, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm"
+import { Product } from "src/product/entities/product.entity";
+import { Column, CreateDateColumn, Entity, Exclusion, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm"
 
 @Entity()
 export class User {
@@ -18,7 +19,7 @@ export class User {
   @Column()
   readonly prenom: string;
 
-  @Column({ nullable : true})
+  @Column({ nullable : true, enum: ["Feminin", "Masculin"]})
   readonly genre: string;
 
   @Column({ nullable : true})
@@ -29,4 +30,8 @@ export class User {
 
   @UpdateDateColumn()
   readonly updateAt : Date;
+
+  @OneToMany(() => Product, (product) => product.user)
+  products : Product[]
+
 }
